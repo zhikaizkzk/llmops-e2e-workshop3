@@ -7,6 +7,24 @@ spec:
   selector:
     app: gpt-hf-pod
   ports:
-  - port: 8000 
+  - port: 8000
     targetPort: 8000
     nodePort: 30007
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+ name: gpt-hf-ingress
+spec:
+ ingressClassName: nginx
+ rules:
+ - host: gpt.xxx.xxx.xxx.xx.sslip.io
+   http:
+    paths:
+    - backend:
+        service:
+          name: gpt-hf-service
+          port:
+            number: 8000
+      path: /
+      pathType: Prefix
