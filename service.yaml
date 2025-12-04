@@ -18,7 +18,7 @@ metadata:
 spec:
  ingressClassName: nginx
  rules:
- - host: gpt.xxx.xxx.xxx.xx.sslip.io
+ - host: gpt.104.248.99.212.sslip.io
    http:
     paths:
     - backend:
