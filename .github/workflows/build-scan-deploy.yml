@@ -7,7 +7,7 @@ on:
 jobs:
   build-scan-push:
     runs-on: ubuntu-latest
-    environment: sandbox
+
     env:
       IMAGE_NAME: leongzhikai96/workshop3
       IMAGE_TAG: ${{ github.sha }}
@@ -15,6 +15,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Free disk space before build/scan
+        run: |
+          echo "Disk usage before cleanup:"
+          df -h
+          docker system prune -f || true        # <- no -a, safer
+          docker volume prune -f || true
+          rm -rf /tmp/* || true
+          echo "Disk usage after cleanup:"
+          df -h
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -25,16 +35,9 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t $IMAGE_NAME:$IMAGE_TAG .
-          
-      - name: Free disk space before scan
-        run: |
-          echo "Disk usage before cleanup:"
-          df -h
-          docker system prune -af || true
-          docker volume prune -f || true
-          rm -rf /tmp/* || true
-          echo "Disk usage after cleanup:"
-          df -h
+
+      - name: Show images (debug)
+        run: docker images
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.28.0
@@ -46,11 +49,7 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           scanners: 'vuln'
-          cache-dir: /tmp/trivy-cache
-          timeout: 10m
-          skip-db-update: false  # set true if you run often & can tolerate slightly older DB
 
-      # Only runs if Trivy passed (exit-code == 0)
       - name: Push image to Docker Hub
         run: |
           docker push $IMAGE_NAME:$IMAGE_TAG
