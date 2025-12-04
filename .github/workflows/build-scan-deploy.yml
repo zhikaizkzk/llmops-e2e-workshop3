@@ -34,8 +34,11 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-          exit-code: '1'     # fail job if CRITICAL/HIGH found
+          exit-code: '1'
           scanners: 'vuln'
+          cache-dir: /tmp/trivy-cache
+          timeout: 10m
+          skip-db-update: false  # set true if you run often & can tolerate slightly older DB
 
       # Only runs if Trivy passed (exit-code == 0)
       - name: Push image to Docker Hub
