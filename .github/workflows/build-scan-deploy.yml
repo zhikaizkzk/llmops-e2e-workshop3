@@ -7,7 +7,7 @@ on:
 jobs:
   build-scan-push:
     runs-on: ubuntu-latest
-
+    environment: sandbox
     env:
       IMAGE_NAME: leongzhikai96/workshop3
       IMAGE_TAG: ${{ github.sha }}
