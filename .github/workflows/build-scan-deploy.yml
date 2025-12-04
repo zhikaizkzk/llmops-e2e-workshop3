@@ -52,8 +52,8 @@ jobs:
 
       - name: Apply Deployment + Service + Ingress
         run: |
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service-ingress.yaml
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service-ingress.yaml
 
       - name: Update image in deployment
         run: |
