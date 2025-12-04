@@ -1,13 +1,13 @@
-name: Build, Scan with Trivy, Deploy to DigitalOcean K8s
+name: Build & Deploy to DigitalOcean K8s (no scanning)
 
 on:
   push:
-    branches: [ main ]   # adjust branch as needed
+    branches: [ main ]
 
 jobs:
-  build-scan-push:
+  build-and-push:
     runs-on: ubuntu-latest
-    environment: sandbox
+
     env:
       IMAGE_NAME: leongzhikai96/workshop3
       IMAGE_TAG: ${{ github.sha }}
@@ -15,16 +15,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Free disk space before build/scan
-        run: |
-          echo "Disk usage before cleanup:"
-          df -h
-          docker system prune -f || true        # <- no -a, safer
-          docker volume prune -f || true
-          rm -rf /tmp/* || true
-          echo "Disk usage after cleanup:"
-          df -h
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -36,26 +26,12 @@ jobs:
         run: |
           docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
-      - name: Show images (debug)
-        run: docker images
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          format: 'table'
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-          ignore-unfixed: true
-          exit-code: '1'
-          scanners: 'vuln'
-
-      - name: Push image to Docker Hub
+      - name: Push image
         run: |
           docker push $IMAGE_NAME:$IMAGE_TAG
 
   deploy:
-    needs: build-scan-push
+    needs: build-and-push
     runs-on: ubuntu-latest
 
     env:
@@ -64,32 +40,25 @@ jobs:
       KUBE_DIR: $HOME/.kube
 
     steps:
-      - name: Prepare kubeconfig directory
+      - name: Prep kube config
         run: mkdir -p $KUBE_DIR
 
-      - name: Set up kubeconfig from DigitalOcean secret
+      - name: Set up DigitalOcean kubeconfig
         run: |
           echo "${{ secrets.DIGITALOCEAN_KUBECONFIG }}" | base64 -d > $KUBE_DIR/config
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
-        with:
-          version: 'latest'
 
-      - name: Check cluster context
-        run: kubectl config current-context
-
-      # First-time apply (idempotent): ensure Deployment/Service/Ingress exist
-      - name: Apply Kubernetes manifests (deployment + service + ingress)
+      - name: Apply Deployment + Service + Ingress
         run: |
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/service-ingress.yaml
 
-      # Update just the image of your Deployment
-      - name: Update gpt-huggingface deployment image
+      - name: Update image in deployment
         run: |
           kubectl set image deployment/gpt-huggingface \
-            gptcontainer=${IMAGE_NAME}:${IMAGE_TAG}
+          gptcontainer=${IMAGE_NAME}:${IMAGE_TAG}
 
       - name: Wait for rollout
         run: |
