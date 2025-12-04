@@ -40,6 +40,8 @@ jobs:
       KUBE_DIR: $HOME/.kube
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
       - name: Prep kube config
         run: mkdir -p $KUBE_DIR
 
@@ -52,8 +54,8 @@ jobs:
 
       - name: Apply Deployment + Service + Ingress
         run: |
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service.yaml
 
       - name: Update image in deployment
         run: |
