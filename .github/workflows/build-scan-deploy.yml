@@ -25,6 +25,16 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t $IMAGE_NAME:$IMAGE_TAG .
+          
+      - name: Free disk space before scan
+        run: |
+          echo "Disk usage before cleanup:"
+          df -h
+          docker system prune -af || true
+          docker volume prune -f || true
+          rm -rf /tmp/* || true
+          echo "Disk usage after cleanup:"
+          df -h
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.28.0
